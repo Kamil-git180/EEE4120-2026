@@ -6,7 +6,7 @@
 %
 % MEMBERS:
 %   - Muhammed Zaakir Vahed, VHDMUH004
-%   - Kamil Singh, Student Number
+%   - Kamil Singh, SNGKAM012
 
 %% ========================================================================
 %  PART 4: Testing and Analysis
@@ -43,8 +43,19 @@ function run_analysis()
     time_parallel = zeros(n_sizes,1);
     speedup       = zeros(n_sizes,1);
 
-    % Use 2 workers for parallel execution
-    num_workers = 2;
+     % Asks user when run how many cores they want to utilize in parallel
+     % computing
+    max_cores = feature('numcores'); %fetches number of CPU cores on system
+    fprintf('You have %d proccessing cores available.\n', max_cores);
+    num_workers = input(sprintf('How many workers do you want to use? (2-%d): ', max_cores));
+
+    %checking correct number of workers selected ( greater or equal to 2
+    %and less than amt og cores available 
+    if num_workers < 2 || num_workers > max_cores
+        fprintf('Invalid input, defaulting to 2 workers.\n');
+        num_workers = 2;
+    end
+    fprintf('Running with %d workers.\n\n', num_workers);
 
     for s = 1:n_sizes
 
@@ -73,8 +84,39 @@ function run_analysis()
         speedup(s) = time_serial(s) / time_parallel(s);
 
     end
+        % Shutdown pool after all sizes done
+    pool = gcp('nocreate');
+    if ~isempty(pool)
+        delete(pool);
+        fprintf('\nParallel pool closed.\n');
+    end
 
+    % Summary table
+    fprintf('\n%-10s %-12s %-12s %-10s %-12s\n', 'Size', 'Serial(s)', 'Parallel(s)', 'Speedup', 'Efficiency');
+    fprintf('%s\n', repmat('-', 1, 58));
+    for s = 1:n_sizes
+        efficiency = (speedup(s) / num_workers) * 100;
+        fprintf('%-10s %-12.2f %-12.2f %-10.2f %-11.1f%%\n', ...
+            size_labels{s}, time_serial(s), time_parallel(s), speedup(s), efficiency);
+    end
+
+    % Speedup plot
+    megapixels = (image_sizes(:,1) .* image_sizes(:,2)) / 1e6;
+    figure;
+    plot(megapixels, speedup, '-o', 'LineWidth', 2);
+    xlabel('Image Size (Megapixels)');
+    ylabel('Speedup');
+    title(sprintf('Parallel Speedup vs Image Size (%d workers)', num_workers));
+    grid on;
+    yline(1, 'r--', 'No speedup');
+    yline(num_workers, 'g--', 'Ideal speedup');
+    saveas(gcf, sprintf('speedup_plot_%dworkers.png', num_workers));
+    fprintf('\nSpeedup plot saved.\n');
+
+    
 end
+
+
 
 
 
@@ -93,7 +135,7 @@ end
 %reasearch 'imwrite; was used 
 %imwrite takes the pixel value from the normalized(0-256) image data and
 %assigns it a colour like a heat map with higher number being the warmest
-%mandelplot
+%mandelplot 
 
 function mandelbrot_plot(img_data, width, height, method_type)
     norm_data = uint8(255 * (img_data / max(img_data(:)))); %scales values down and spreads them between 0 -256 
