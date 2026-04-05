@@ -1,0 +1,5 @@
+Best cost: 115
+Best path: 1 4 5 2 3 
+T_init: 0.000008
+T_comp: 0.001864
+T_total: 0.001872
